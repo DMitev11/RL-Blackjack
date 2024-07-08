@@ -105,14 +105,14 @@ export function getValue(card: Deck.CARD): number {
 export function getHandValue(...cards: [Deck.CARD, number][]): Deck.Hand {
     const soft: () => number = () => {
         let val = 0;
-        cards.forEach(card => val += card[0] === Deck.CARD.ACE ? 1 : Deck.getCardValue(card));
+        cards.forEach(card => val += card[1] === Deck.CARD.ACE ? 1 : Deck.getCardValue(card));
         return val;
     }
     const hard = () => {
         let hasAce = false;
-        return cards.reduce((prev, current) => { 
+        return cards.reduce((prev, current) => {
             const val = prev + (current[1] === Deck.CARD.ACE && hasAce ? 1 : current[1]);
-            if(current[0] === Deck.CARD.ACE) hasAce = true;
+            if(current[1] === Deck.CARD.ACE) hasAce = true;
             return val;
         }, 0)
     };
@@ -179,22 +179,24 @@ export function softHardHands(dealerCard: [Deck.CARD, number], ...cards: [Deck.C
 }
 
 //@todo place enumuerators
-function splittingPairs(dealerCard: [Deck.CARD, number], ...cards: [Deck.CARD, number][]): {action: PLAY, card?: Deck.CARD}  { 
+export function splittingPairs(dealerCard: [Deck.CARD, number], ...cards: [Deck.CARD, number][]): {action: PLAY, card?: [Deck.CARD, number]}  { 
     const hand = getHandValue(...cards);
-    if(hand.pairs.find(([_, value]) => value === 2)) return {action: dealerCard[1] <= 7 ? PLAY.SPLIT: PLAY.HIT, card: 2};
-    if(hand.pairs.find(([_, value]) => value === 3)) return {action: dealerCard[1] <= 7 ? PLAY.SPLIT: PLAY.HIT, card: 3};
-    if(hand.pairs.find(([_, value]) => value === 4)) return {action: dealerCard[1] >= 5 && dealerCard[1] <= 6 ? PLAY.SPLIT: PLAY.HIT, card: 4};
-    if(hand.pairs.find(([_, value]) => value === 5)) return {action: dealerCard[1] <= 9 ? PLAY.DOUBLE_DOWN: PLAY.HIT};
-    if(hand.pairs.find(([_, value]) => value === 6)) return {action: dealerCard[1] <= 6 ? PLAY.SPLIT: PLAY.HIT, card: 6};
-    if(hand.pairs.find(([_, value]) => value === 7)) return {action: dealerCard[1] <= 7  ? PLAY.SPLIT: PLAY.HIT, card: 7};
-    if(hand.pairs.find(([_, value]) => value === 8)) return {action: PLAY.SPLIT, card: 8};
-    if(hand.pairs.find(([_, value]) => value === 9)) return {
+    let pair;
+    if(pair = hand.pairs.find(([_, value]) => value === 2)) return {action: dealerCard[1] <= 7 ? PLAY.SPLIT: PLAY.HIT, card: pair};
+    if(pair = hand.pairs.find(([_, value]) => value === 3)) return {action: dealerCard[1] <= 7 ? PLAY.SPLIT: PLAY.HIT, card: pair};
+    if(pair = hand.pairs.find(([_, value]) => value === 4)) return {action: dealerCard[1] >= 5 && dealerCard[1] <= 6 ? PLAY.SPLIT: PLAY.HIT, card: pair};
+    if(pair = hand.pairs.find(([_, value]) => value === 5)) return {action: dealerCard[1] <= 9 ? PLAY.DOUBLE_DOWN: PLAY.HIT};
+    if(pair = hand.pairs.find(([_, value]) => value === 6)) return {action: dealerCard[1] <= 6 ? PLAY.SPLIT: PLAY.HIT, card: pair};
+    if(pair = hand.pairs.find(([_, value]) => value === 7)) return {action: dealerCard[1] <= 7  ? PLAY.SPLIT: PLAY.HIT, card: pair};
+    if(pair = hand.pairs.find(([_, value]) => value === 8)) return {action: PLAY.SPLIT, card: pair};
+    if(pair = hand.pairs.find(([_, value]) => value === 9)) return {
         action: dealerCard[1] === 7 || dealerCard[1] === 10 || dealerCard[1] === 11? 
             PLAY.STAND : PLAY.SPLIT,
-        card: 9
+        card: pair
     }
-    if(hand.pairs.find(([_, value]) => value === 10)) return {action: PLAY.STAND}
-    else return {action: PLAY.SPLIT, card: 11}
+    if(pair = hand.pairs.find(([_, value]) => value === 10)) return {action: PLAY.STAND}
+    if(pair = hand.pairs.find(([_, value]) => value === 11)) return {action: PLAY.SPLIT, card: pair}
+    return {action: PLAY.STAND}
 }
 
 export function BasicStrategyAction (
