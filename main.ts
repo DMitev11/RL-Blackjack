@@ -191,12 +191,21 @@ class Playthrough {
 }
 
 async function main() { 
-    const deck = new Deck.PlayDeck(100);
+    const deck = new Deck.PlayDeck(1000);
 
     let wins = 0;
     let losses = 0;
     let round = 0;
-    for(let i = 0; i < 5200; i++) {
+
+    const TOTAL_ROUNDS = 100000;
+    let progress = 0;
+    console.log(`Progress: ${progress}`);
+    for(let i = 0; i < TOTAL_ROUNDS; i++) {
+        let p = Math.floor(round / TOTAL_ROUNDS * 100);
+        if(p !== progress) { 
+            progress = p;
+            console.log(`Progress: ${progress}`);
+        }
         round++;
         Logger.log(`\n Round: ${round}`, false);
 
@@ -207,7 +216,7 @@ async function main() {
     }
     Logger.log(`Wins: ${wins}, Losses: ${losses}`);
     Logger.exportToFile();
-    console.log("done exporting")
+    console.log("done exporting in the local directory")
 }
 
 main();
