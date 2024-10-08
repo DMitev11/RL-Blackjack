@@ -105,16 +105,14 @@ export function getValue(card: Deck.CARD): number {
 export function getHandValue(...cards: [Deck.CARD, number][]): Deck.Hand {
     const soft: () => number = () => {
         let val = 0;
-        cards.forEach(card => val += card[1] === Deck.CARD.ACE ? 1 : Deck.getCardValue(card));
+        cards.forEach((card, index) => val += card[1] === Deck.CARD.ACE ?
+            cards.findIndex(([_, value]) => value === card[1]) === index ? Deck.getCardValue(card) : 1
+            : Deck.getCardValue(card)
+        );
         return val;
     }
     const hard = () => {
-        let hasAce = false;
-        return cards.reduce((prev, current) => {
-            const val = prev + (current[1] === Deck.CARD.ACE && hasAce ? 1 : current[1]);
-            if(current[1] === Deck.CARD.ACE) hasAce = true;
-            return val;
-        }, 0)
+        return cards.reduce((prev, current) => { return prev + current[1]; }, 0)
     };
     const pairs = () => cards.filter((card, i) => cards.findIndex(el => card === el) !== i);
 
