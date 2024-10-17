@@ -25,7 +25,6 @@ class PlayHand {
     private _cards: [Deck.CARD, number][];
     private _playerWait?: AsyncAction;
     private _playAction?: PLAY;
-    private _verbose = false;
     
     constructor(params: {deck: Deck.PlayDeck}, card?: [Deck.CARD, number])
     {
@@ -54,15 +53,16 @@ class PlayHand {
         let playerHand = this.handValue;
         this._playerWait = new AsyncAction();
         
-        Logger.log(`You have: soft ${playerHand.soft} and hard ${playerHand.hard} with pairs ${playerHand.pairs}. Dealer's card is ${dealerCard[0]}`, this._verbose);
+        Logger.log(`You have: ${this._cards.map(([val, _]) => val)}`, manualPlay);
+        Logger.log(`You have: soft ${playerHand.soft} and hard ${playerHand.hard} with pairs ${playerHand.pairs}. Dealer's card is ${dealerCard[0]}`, manualPlay);
         const dealersCard = dealersUpcard(dealerCard, ...playerHand.cards);
         const softHard = softHardHands(dealerCard, ...playerHand.cards);
         const splitPairs = splittingPairs(dealerCard, ...playerHand.cards);
-        Logger.log(`Dealer's Upcard suggests '${dealersCard.toUpperCase()}'`, this._verbose)
-        Logger.log(`Soft Hands suggests '${softHard.soft.toUpperCase()}'`, this._verbose)
-        Logger.log(`Hard Hands suggests '${softHard.hard.toUpperCase()}'`, this._verbose)
-        Logger.log(`Split Pairs suggests '${splitPairs.action.toUpperCase()}'`, this._verbose)
-        Logger.log(`Valid actions are: ${Object.keys(PLAY).map((action, i) => ` key ${i} for action ${action}`)}`, this._verbose)
+        Logger.log(`Dealer's Upcard suggests '${dealersCard.toUpperCase()}'`, manualPlay)
+        Logger.log(`Soft Hands suggests '${softHard.soft.toUpperCase()}'`, manualPlay)
+        Logger.log(`Hard Hands suggests '${softHard.hard.toUpperCase()}'`, manualPlay)
+        Logger.log(`Split Pairs suggests '${splitPairs.action.toUpperCase()}'`, manualPlay)
+        Logger.log(`Valid actions are: ${Object.keys(PLAY).map((action, i) => ` key ${i} for action ${action}`)}`, manualPlay)
         
         if(manualPlay) {
             rl.question(`What is your action? `, this._manualPlay.bind(this));
@@ -70,7 +70,7 @@ class PlayHand {
         }
         else this._averagePlay([dealersCard, softHard.soft, softHard.hard, splitPairs.action]);
 
-        Logger.log(`It chose ${this._playAction?.toUpperCase()}`, this._verbose)
+        Logger.log(`It chose ${this._playAction?.toUpperCase()}`, manualPlay)
 
         if(this._playAction === PLAY.SPLIT) return {play: splitPairs.action, card: splitPairs.card}
         return {play: this._playAction as PLAY}
@@ -99,7 +99,7 @@ class Playthrough {
     private _params: {deck: Deck.PlayDeck};
     private _dealer: [Deck.CARD, number][];
     private _player: PlayHand[];
-    private _verbose: boolean = false;
+    private _verbose: boolean = true;
     
     constructor(params: {deck: Deck.PlayDeck}) {
         this._params = params; 
@@ -108,6 +108,8 @@ class Playthrough {
     }
 
     async play(manualPlay: boolean = true): Promise<boolean[]> { 
+        this._verbose = manualPlay;
+
         let dealerTurn = false;
         const score: boolean[] = [];
         const doneHands: number[] = [];
@@ -134,6 +136,7 @@ class Playthrough {
         Logger.log('\n', this._verbose);
         this._dealerTurn();
         let dealerHand = getHandValue(...this._dealer);
+        Logger.log(`Dealer's hand is ${this._dealer.map(([val, _]) => val)}`, manualPlay);
         for(let i = 0; i < this._player.length; i++) { 
             if(doneHands.includes(i)) continue;
 
@@ -210,7 +213,7 @@ async function main() {
         Logger.log(`\n Round: ${round}`, false);
 
         const playthrough = new Playthrough({deck});
-        const res = await playthrough.play(false);
+        const res = await playthrough.play(true);
         res.forEach((res) => res ? wins++ : losses++);
         Logger.log(`Wins: ${wins}, Losses: ${losses}`, false);
     }

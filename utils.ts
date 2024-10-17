@@ -75,9 +75,9 @@ export const TARGET_VALUE = 21;
 export const DEALER_MIN = 17;
 
 export enum PLAY { 
+    STAND = 'stand',
     HIT = 'hit',
     DOUBLE_DOWN = 'double_down',
-    STAND = 'stand',
     SPLIT = 'split'
 }
 
@@ -195,14 +195,6 @@ export function splittingPairs(dealerCard: [Deck.CARD, number], ...cards: [Deck.
     if(pair = hand.pairs.find(([_, value]) => value === 10)) return {action: PLAY.STAND}
     if(pair = hand.pairs.find(([_, value]) => value === 11)) return {action: PLAY.SPLIT, card: pair}
     return {action: PLAY.STAND}
-}
-
-export function BasicStrategyAction (
-    strategy: PLAY_STRATEGY, 
-    dealerCard: Deck.CARD, 
-    ...cards: Deck.CARD[]
-) { 
-
 }
 
 
