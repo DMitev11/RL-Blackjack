@@ -12,6 +12,7 @@
     "typescript": "^5.4.5"
   },
   "dependencies": {
+    "@tensorflow/tfjs": "^4.20.0",
     "@types/node": "^20.14.9"
   }
 }
