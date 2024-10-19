@@ -7,12 +7,12 @@ from utils import Card, Action, calculateHand, shiftEndNegative1D, shiftEndNegat
 class BlackJackPlayEnv(Env):
     def evaluateAction(self, action, index):
         iter = 0
-        hand = self.state['player_hands'][self.hand_index]
+        hand = self.state['player_hands'][index]
         soft, _, pairs, _ = calculateHand(hand)
         len_hand = len([v for v in hand if v != -1])
         while True:
             if(action - iter <= Action.STAY.value):
-                self.state['done_hands'][self.hand_index] = 1
+                self.state['done_hands'][index] = 1
                 return Action.STAY
 
             if(action - iter == Action.HIT.value):
@@ -54,6 +54,7 @@ class BlackJackPlayEnv(Env):
         return hand[0] > -1
     
     def handValue(self, index):
+        print(type(index))
         return calculateHand(self.state['player_hands'][index])
     
     def playerHand(self, index):
@@ -82,6 +83,7 @@ class BlackJackPlayEnv(Env):
         self.state['player_hands_indices'] -= 1
 
         self.__sortHands__()
+        return True
 
     def addPlayerCards(self, cards, index):
         if(self.__isValidHand__(index) == False): return False
