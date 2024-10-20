@@ -19,7 +19,6 @@ env=BlackJackPlayEnv()
 model = PPO.load("Cards_PPO", env)
 obs = env.reset()
 
-
 def parseCards(cards):
     arr = []
     for card in cards:
@@ -46,7 +45,8 @@ app = Flask(__name__)
 def hand_value():
     idx = request.args.get('hand_index', 0)
     idx = int(idx)
-    return jsonify(env.handValue(idx))
+    soft, hard, pairs, highValue = env.handValue(idx)
+    return jsonify({"soft": float(soft), "hard": float(hard), "pairs": [float(pair) for pair in pairs], "highValue": float(highValue)})
 
 @app.route('/hand_cards', methods=['GET'])
 def hand_Cards():
@@ -75,14 +75,18 @@ def remove_player_hand():
 def add_player_cards():
     data = request.get_json()
     cards = parseCards(data.get('player_cards'))
+    idx = data.get('index')
+    idx = int(idx)
 
-    env.addPlayerCards(cards)
+    env.addPlayerCards(cards, idx)
     return jsonify({"result": True}), 200
 
 @app.route('/remove_player_card', methods=['POST'])
 def remove_player_card():
     data = request.get_json()
     card = parseCards([data.get('player_card')])[0]
+    idx = data.get('index')
+    idx = int(idx)
 
     env.removePlayerCard(card)
     return jsonify({"result": True}), 200
@@ -108,6 +112,14 @@ def start_game():
 
     env.addPlayerHand(player_cards)
     env.addDealerCard(dealer_card)
+    return jsonify({"result": True}), 200
+
+@app.route('/step', methods=['POST'])
+def step():
+    data = request.get_json()
+    action = int(data.get('action'))
+
+    env.step(action)
     return jsonify({"result": True}), 200
 
 @app.route('/predict', methods=['GET'])

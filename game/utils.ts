@@ -1,3 +1,4 @@
+import * as fs from 'fs';
 export namespace Deck {
     export enum CARD {
         ACE = 11,
@@ -22,6 +23,7 @@ export namespace Deck {
 
     export type Hand = {
         cards: [Deck.CARD, number][]
+        cardNames: Deck.CARD[]
         soft: number,
         hard: number,
         pairs: [Deck.CARD, number][]
@@ -37,6 +39,7 @@ export namespace Deck {
 
         return deck;
     }
+
     export class PlayDeck {
         public readonly deckCount: number;
         private _set: [Deck.CARD, number][];
@@ -55,14 +58,19 @@ export namespace Deck {
             this._set = this.constructDeck(deckCount);
         }
 
-        drawCard(): [Deck.CARD, number] | undefined{
-            let card = this._set.shift();
-            if(!card) this._set = this.constructDeck(this.deckCount);
-            else return card;
-
-            return this._set.shift();
+        drawCard(): [Deck.CARD, number] {
+            if(!this._set.length) this._set = this.constructDeck(this.deckCount);
+            
+            return this._set.shift() as [Deck.CARD, number];
         }
     }
+}
+
+export enum ACTION {
+    STAND = 'stand',
+    HIT = 'hit',
+    DOUBLE_DOWN = 'double_down',
+    SPLIT = 'split'
 }
 
 export enum PLAY_STRATEGY {
@@ -73,13 +81,6 @@ export enum PLAY_STRATEGY {
 
 export const TARGET_VALUE = 21;
 export const DEALER_MIN = 17;
-
-export enum PLAY {
-    STAND = 'stand',
-    HIT = 'hit',
-    DOUBLE_DOWN = 'double_down',
-    SPLIT = 'split'
-}
 
 export function getValue(card: Deck.CARD): number {
     switch (card) {
@@ -103,44 +104,41 @@ export function getValue(card: Deck.CARD): number {
 }
 
 export function getHandValue(...cards: [Deck.CARD, number][]): Deck.Hand {
-    const soft: () => number = () => {
+    const soft = (() => {
         let val = 0;
         cards.forEach((card, index) => val += card[1] === Deck.CARD.ACE ?
             cards.findIndex(([_, value]) => value === card[1]) === index ? Deck.getCardValue(card) : 1
             : Deck.getCardValue(card)
         );
         return val;
-    }
-    const hard = () => {
+    })()
+    const hard = (() => {
         return cards.reduce((prev, current) => { return prev + current[1]; }, 0)
-    };
-    const pairs = () => cards.filter((card, i) => cards.findIndex(el => card === el) !== i);
+    })();
+    const pairs = cards.length > 2 ? [] :
+        (() => cards.filter((card, i) => cards.findIndex(el => card === el) !== i))();
+    const cardNames = cards.map(([card, _]) => card);
 
-    return {
-        cards,
-        soft: soft(),
-        hard: hard(),
-        pairs: pairs()
-    }
+    return { cards, cardNames, soft, hard, pairs }
 }
 
 //@todo place enumuerators
-export function dealersUpcard(dealerCard: [Deck.CARD, number], ...cards: [Deck.CARD, number][]): PLAY {
+export function dealersUpcard(dealerCard: [Deck.CARD, number], ...cards: [Deck.CARD, number][]): ACTION {
     const hand = getHandValue(...cards);
     const handValue = hand.hard > TARGET_VALUE ? hand.hard : hand.soft;
     const stiff = () => {
-        if(handValue <= 8) return PLAY.HIT;
-        if(handValue === 9) return 3 <= dealerCard[1] && dealerCard[1] <= 6 ? PLAY.DOUBLE_DOWN : PLAY.HIT;
-        if(handValue === 10 || handValue === 11) return handValue > dealerCard[1] ? PLAY.DOUBLE_DOWN : PLAY.HIT;
-        if(12 <= handValue  && handValue <= 16) return 4 <= dealerCard[1] && dealerCard[1] <= 6 ? PLAY.STAND : PLAY.HIT;
-        else return PLAY.STAND;
+        if(handValue <= 8) return ACTION.HIT;
+        if(handValue === 9) return 3 <= dealerCard[1] && dealerCard[1] <= 6 ? ACTION.DOUBLE_DOWN : ACTION.HIT;
+        if(handValue === 10 || handValue === 11) return handValue > dealerCard[1] ? ACTION.DOUBLE_DOWN : ACTION.HIT;
+        if(12 <= handValue  && handValue <= 16) return 4 <= dealerCard[1] && dealerCard[1] <= 6 ? ACTION.STAND : ACTION.HIT;
+        else return ACTION.STAND;
     }
     const nonStiff = () => {
-        if(handValue <= 8) return PLAY.HIT;
-        if(handValue === 9) return PLAY.HIT;
-        if(handValue === 10 || handValue === 11) return handValue > dealerCard[1] ? PLAY.DOUBLE_DOWN : PLAY.HIT;
-        if(12 <= handValue  && handValue <= 16) return PLAY.HIT;
-        else return PLAY.STAND;
+        if(handValue <= 8) return ACTION.HIT;
+        if(handValue === 9) return ACTION.HIT;
+        if(handValue === 10 || handValue === 11) return handValue > dealerCard[1] ? ACTION.DOUBLE_DOWN : ACTION.HIT;
+        if(12 <= handValue  && handValue <= 16) return ACTION.HIT;
+        else return ACTION.STAND;
     }
 
     return dealerCard[1] >= 7 ? nonStiff() : stiff();
@@ -150,24 +148,24 @@ export function dealersUpcard(dealerCard: [Deck.CARD, number], ...cards: [Deck.C
 export function softHardHands(dealerCard: [Deck.CARD, number], ...cards: [Deck.CARD, number][]) {
     const hand = getHandValue(...cards);
     const soft = () => {
-        if(hand.soft < 13) return PLAY.STAND;
-        if(hand.soft <= 14) return dealerCard[1] === 5 || dealerCard[1] === 6 ? PLAY.DOUBLE_DOWN : PLAY.HIT;
-        if(hand.soft <= 16) return 4 <= dealerCard[1] && dealerCard[1] <= 6 ? PLAY.DOUBLE_DOWN : PLAY.HIT;
-        if(hand.soft === 17) return 3 <= dealerCard[1] && dealerCard[1] <= 6 ? PLAY.DOUBLE_DOWN : PLAY.HIT;
+        if(hand.soft < 13) return ACTION.STAND;
+        if(hand.soft <= 14) return dealerCard[1] === 5 || dealerCard[1] === 6 ? ACTION.DOUBLE_DOWN : ACTION.HIT;
+        if(hand.soft <= 16) return 4 <= dealerCard[1] && dealerCard[1] <= 6 ? ACTION.DOUBLE_DOWN : ACTION.HIT;
+        if(hand.soft === 17) return 3 <= dealerCard[1] && dealerCard[1] <= 6 ? ACTION.DOUBLE_DOWN : ACTION.HIT;
         if(hand.soft === 18) {
-            if(3 <= dealerCard[1] && dealerCard[1] <= 6) return PLAY.DOUBLE_DOWN;
-            if(dealerCard[1] === 2 || dealerCard[1] === 7 || dealerCard[1] === 8) return PLAY.STAND;
-            else return PLAY.HIT;
+            if(3 <= dealerCard[1] && dealerCard[1] <= 6) return ACTION.DOUBLE_DOWN;
+            if(dealerCard[1] === 2 || dealerCard[1] === 7 || dealerCard[1] === 8) return ACTION.STAND;
+            else return ACTION.HIT;
         }
-        else return PLAY.STAND;
+        else return ACTION.STAND;
     }
     const hard = () => {
-        if(hand.hard <= 8) return PLAY.HIT;
-        if(hand.hard === 9) return dealerCard[1] >= 3 && dealerCard[1] <= 6 ? PLAY.DOUBLE_DOWN : PLAY.HIT;
-        if(hand.hard <= 11) return hand.hard > dealerCard[1] ? PLAY.DOUBLE_DOWN : PLAY.HIT;
-        if(hand.hard === 12) return dealerCard[1] >= 4 && dealerCard[1] <= 6 ? PLAY.STAND : PLAY.HIT;
-        if(hand.hard <= 16) return dealerCard[1] <= 6 ? PLAY.STAND : PLAY.HIT;
-        else return PLAY.STAND;
+        if(hand.hard <= 8) return ACTION.HIT;
+        if(hand.hard === 9) return dealerCard[1] >= 3 && dealerCard[1] <= 6 ? ACTION.DOUBLE_DOWN : ACTION.HIT;
+        if(hand.hard <= 11) return hand.hard > dealerCard[1] ? ACTION.DOUBLE_DOWN : ACTION.HIT;
+        if(hand.hard === 12) return dealerCard[1] >= 4 && dealerCard[1] <= 6 ? ACTION.STAND : ACTION.HIT;
+        if(hand.hard <= 16) return dealerCard[1] <= 6 ? ACTION.STAND : ACTION.HIT;
+        else return ACTION.STAND;
     }
 
     return {
@@ -177,24 +175,24 @@ export function softHardHands(dealerCard: [Deck.CARD, number], ...cards: [Deck.C
 }
 
 //@todo place enumuerators
-export function splittingPairs(dealerCard: [Deck.CARD, number], ...cards: [Deck.CARD, number][]): {action: PLAY, card?: [Deck.CARD, number]}  {
+export function splittingPairs(dealerCard: [Deck.CARD, number], ...cards: [Deck.CARD, number][]): {action: ACTION, card?: [Deck.CARD, number]}  {
     const hand = getHandValue(...cards);
     let pair;
-    if(pair = hand.pairs.find(([_, value]) => value === 2)) return {action: dealerCard[1] <= 7 ? PLAY.SPLIT: PLAY.HIT, card: pair};
-    if(pair = hand.pairs.find(([_, value]) => value === 3)) return {action: dealerCard[1] <= 7 ? PLAY.SPLIT: PLAY.HIT, card: pair};
-    if(pair = hand.pairs.find(([_, value]) => value === 4)) return {action: dealerCard[1] >= 5 && dealerCard[1] <= 6 ? PLAY.SPLIT: PLAY.HIT, card: pair};
-    if(pair = hand.pairs.find(([_, value]) => value === 5)) return {action: dealerCard[1] <= 9 ? PLAY.DOUBLE_DOWN: PLAY.HIT};
-    if(pair = hand.pairs.find(([_, value]) => value === 6)) return {action: dealerCard[1] <= 6 ? PLAY.SPLIT: PLAY.HIT, card: pair};
-    if(pair = hand.pairs.find(([_, value]) => value === 7)) return {action: dealerCard[1] <= 7  ? PLAY.SPLIT: PLAY.HIT, card: pair};
-    if(pair = hand.pairs.find(([_, value]) => value === 8)) return {action: PLAY.SPLIT, card: pair};
+    if(pair = hand.pairs.find(([_, value]) => value === 2)) return {action: dealerCard[1] <= 7 ? ACTION.SPLIT: ACTION.HIT, card: pair};
+    if(pair = hand.pairs.find(([_, value]) => value === 3)) return {action: dealerCard[1] <= 7 ? ACTION.SPLIT: ACTION.HIT, card: pair};
+    if(pair = hand.pairs.find(([_, value]) => value === 4)) return {action: dealerCard[1] >= 5 && dealerCard[1] <= 6 ? ACTION.SPLIT: ACTION.HIT, card: pair};
+    if(pair = hand.pairs.find(([_, value]) => value === 5)) return {action: dealerCard[1] <= 9 ? ACTION.DOUBLE_DOWN: ACTION.HIT};
+    if(pair = hand.pairs.find(([_, value]) => value === 6)) return {action: dealerCard[1] <= 6 ? ACTION.SPLIT: ACTION.HIT, card: pair};
+    if(pair = hand.pairs.find(([_, value]) => value === 7)) return {action: dealerCard[1] <= 7  ? ACTION.SPLIT: ACTION.HIT, card: pair};
+    if(pair = hand.pairs.find(([_, value]) => value === 8)) return {action: ACTION.SPLIT, card: pair};
     if(pair = hand.pairs.find(([_, value]) => value === 9)) return {
         action: dealerCard[1] === 7 || dealerCard[1] === 10 || dealerCard[1] === 11?
-            PLAY.STAND : PLAY.SPLIT,
+            ACTION.STAND : ACTION.SPLIT,
         card: pair
     }
-    if(pair = hand.pairs.find(([_, value]) => value === 10)) return {action: PLAY.STAND}
-    if(pair = hand.pairs.find(([_, value]) => value === 11)) return {action: PLAY.SPLIT, card: pair}
-    return {action: PLAY.STAND}
+    if(pair = hand.pairs.find(([_, value]) => value === 10)) return {action: ACTION.STAND}
+    if(pair = hand.pairs.find(([_, value]) => value === 11)) return {action: ACTION.SPLIT, card: pair}
+    return {action: ACTION.STAND}
 }
 
 
@@ -222,5 +220,32 @@ export class CardPlayer {
         this._counter.add(dealerCard, ...playerCards);
         if(this._counter.count > 0) this._bet = Math.min(this._bankRoll, this._bet * 2);
         else this._bet = 1;
+    }
+}
+
+export class StatsTracker { 
+    private wins: number = 0;
+    private losses: number = 0;
+    private draw: number = 0;
+    private round: number = 0;
+
+    addResult(value: number) { 
+        if(value === -1) { this.losses++; }
+        if(value === 0) { this.draw++; }
+        if(value === 1) { this.wins++; }
+    }
+    addRound() { this.round++; }
+}
+
+export class Logger { 
+    private static _logs: string[] = [];
+
+    static log(msg: string, verbose: boolean = true) {
+        if(verbose) console.log(msg);
+        this._logs.push(msg);
+    }
+
+    static exportToFile() { 
+        fs.writeFileSync("./export.txt", this._logs.join('\n'));
     }
 }

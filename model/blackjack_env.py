@@ -54,7 +54,6 @@ class BlackJackPlayEnv(Env):
         return hand[0] > -1
     
     def handValue(self, index):
-        print(type(index))
         return calculateHand(self.state['player_hands'][index])
     
     def playerHand(self, index):
