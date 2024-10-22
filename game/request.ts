@@ -39,48 +39,48 @@ export class ModelRequest {
     return json;
   }
 
-  static getHandValue(hand_index: number): Promise<any> {
-    return ModelRequest.instance.get("hand_value", {hand_index});
+  static getHandValue(hand_index: number, prefix = ""): Promise<any> {
+    return ModelRequest.instance.get(`${prefix}\\hand_value`, {hand_index});
   }
 
-  static getHandCards(hand_index: number): Promise<any> {
-    return ModelRequest.instance.get("hand_cards", {hand_index});
+  static getHandCards(hand_index: number, prefix = ""): Promise<any> {
+    return ModelRequest.instance.get(`${prefix}\\hand_cards`, {hand_index});
   }
 
-  static startGame(player_cards: string[], dealer_card: string): Promise<any> {
-    return ModelRequest.instance.post("start_game", {player_cards, dealer_card});
+  static startGame(player_cards: string[], dealer_card: string, prefix = ""): Promise<any> {
+    return ModelRequest.instance.post(`${prefix}\\start_game`, {player_cards, dealer_card});
   }
 
-  static resetGame(): Promise<any> {
-    return ModelRequest.instance.post("reset_game", {});
+  static resetGame(prefix = ""): Promise<any> {
+    return ModelRequest.instance.post(`${prefix}\\reset_game`, {});
   }
 
-  static add_player_hand(player_cards: string[]): Promise<any> {
-    return ModelRequest.instance.post("add_player_hand", { player_cards });
+  static add_player_hand(player_cards: string[], prefix = ""): Promise<any> {
+    return ModelRequest.instance.post(`${prefix}\\add_player_hand`, { player_cards });
   }
 
-  static remove_player_hand(index: number): Promise<any> {
-    return ModelRequest.instance.post("remove_player_hand", { index });
+  static remove_player_hand(index: number, prefix = ""): Promise<any> {
+    return ModelRequest.instance.post(`${prefix}\\remove_player_hand`, { index });
   }
 
-  static add_player_cards(player_cards: string[], index: number): Promise<any> {
-    return ModelRequest.instance.post("add_player_cards", { player_cards, index });
+  static add_player_cards(player_cards: string[], index: number, prefix = ""): Promise<any> {
+    return ModelRequest.instance.post(`${prefix}\\add_player_cards`, { player_cards, index });
   }
 
-  static remove_player_card(player_card: string, index: number): Promise<any> {
-    return ModelRequest.instance.post("remove_player_card", { player_card, index });
+  static remove_player_card(player_card: string, index: number, prefix = ""): Promise<any> {
+    return ModelRequest.instance.post(`${prefix}\\remove_player_card`, { player_card, index });
   }
 
-  static add_dealer_card(dealer_card: string, index: number): Promise<any> {
-    return ModelRequest.instance.post("add_dealer_card", { dealer_card, index });
+  static add_dealer_card(dealer_card: string, index: number, prefix = ""): Promise<any> {
+    return ModelRequest.instance.post(`${prefix}\\add_dealer_card`, { dealer_card, index });
   }
 
-  static predict(hand_index: number): Promise<any> {
-    return ModelRequest.instance.get("predict", { hand_index });
+  static predict(hand_index: number, prefix = ""): Promise<any> {
+    return ModelRequest.instance.get(`${prefix}\\predict`, { hand_index });
   }
 
-  static step(hand_index: number, action: number): Promise<any> {
-    return ModelRequest.instance.post("step", { action });
+  static step(action: number, prefix = ""): Promise<any> {
+    return ModelRequest.instance.post(`${prefix}\\step`, { action });
   }
 }
 

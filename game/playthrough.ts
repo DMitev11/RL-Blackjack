@@ -13,8 +13,14 @@ export class Playthrough {
     async play(): Promise<number[]> {
         let dealerTurn = false;
         
+        await ModelRequest.resetGame("old");
+        await ModelRequest.resetGame("new");
         console.log('\n');
-        await ModelRequest.startGame(this._hands[0].handValue.cardNames.map(card => card.toString()), this._dealer.handValue.cardNames[0].toString());
+        const playerCards = this._hands[0].handValue.cardNames.map(card => card.toString())
+        const dealerCards = this._dealer.handValue.cardNames[0].toString()
+        await ModelRequest.startGame(playerCards, dealerCards, "old");
+        await ModelRequest.startGame(playerCards, dealerCards, "new");
+        
         while(!dealerTurn) { 
             dealerTurn = true;
             for(let i = this._hands.length -1; i >=0; i--) { 
@@ -29,7 +35,8 @@ export class Playthrough {
                 const dealersUpcard = this.dealersUpcard(i, hand.manualPlay);
                 const softHardHands = this.softHardHands(i, hand.manualPlay);
                 const splittingPairs = this.splittingPairs(i, hand.manualPlay);
-                const modelPrediction = await this.modelPrediction(i, hand.manualPlay);
+                const oldModelPrediction = await this.modelPrediction(i, hand.manualPlay, "old");
+                const newModelPrediction = await this.modelPrediction(i, hand.manualPlay, "new");
                 
                 const action: ACTION = hand.manualPlay? 
                 await hand.play() : 
@@ -38,7 +45,8 @@ export class Playthrough {
                 this.handActionEvaluate(i, action);  
                 this._hands[i].done = this.handBust(i);
 
-                await ModelRequest.step(i, Object.values(ACTION).indexOf(action))
+                await ModelRequest.step(Object.values(ACTION).indexOf(action), "old")
+                await ModelRequest.step(Object.values(ACTION).indexOf(action), "new")
             }
         }
         
@@ -85,28 +93,32 @@ export class Playthrough {
         return soft > TARGET_VALUE
     }
 
-    private handActionEvaluate(index: number, action: ACTION) {
+    private async handActionEvaluate(index: number, action: ACTION) {
         switch(action) { 
             case ACTION.HIT: {
                 const card = this._params.deck.drawCard() as [Deck.CARD, number];
                 this._hands[index].addCard(card);
-                ModelRequest.add_player_cards([card[0].toString()], index);
+                await ModelRequest.add_player_cards([card[0].toString()], index, "old");
+                await ModelRequest.add_player_cards([card[0].toString()], index, "new");
                 break;
             }
             case ACTION.DOUBLE_DOWN: {
                 const cards = [this._params.deck.drawCard() as [Deck.CARD, number], this._params.deck.drawCard() as [Deck.CARD, number]];
                 this._hands[index].addCard(...cards);
-                ModelRequest.add_player_cards(cards.map(([card, _]) => card.toString()), index);
+                ModelRequest.add_player_cards(cards.map(([card, _]) => card.toString()), index, "old");
+                ModelRequest.add_player_cards(cards.map(([card, _]) => card.toString()), index, "new");
                 break;
             }
             case ACTION.SPLIT: { 
                 const card = this._hands[index].handValue.pairs[0];
                 this._hands[index].removeCard(card);
-                ModelRequest.remove_player_card(card[0].toString(), index);
+                ModelRequest.remove_player_card(card[0].toString(), index, "old");
+                ModelRequest.remove_player_card(card[0].toString(), index, "new");
                 
                 const newHandCards = [card, this._params.deck.drawCard()];
                 this._hands.push(new PlayHand(newHandCards, this._hands[index].manualPlay));
-                ModelRequest.add_player_hand(newHandCards.map(([card, _]) => card.toString()));
+                ModelRequest.add_player_hand(newHandCards.map(([card, _]) => card.toString()), "old");
+                ModelRequest.add_player_hand(newHandCards.map(([card, _]) => card.toString()), "new");
 
                 this._hands[index].addCard(this._params.deck.drawCard());
                 break;
@@ -146,9 +158,9 @@ export class Playthrough {
         manualPlay);
     }
 
-    private async modelPrediction(index: number, manualPlay = true): Promise<{prediction: number, action: number}> { 
-        const {prediction, action, result} = await ModelRequest.predict(index);
-        Logger.log(`Model suggests ${Object.keys(ACTION)[parseInt(action)]}`, manualPlay);
+    private async modelPrediction(index: number, manualPlay = true, prefix = ""): Promise<{prediction: number, action: number}> { 
+        const {prediction, action, result} = await ModelRequest.predict(index, prefix);
+        Logger.log(`${prefix.toUpperCase()} Model suggests ${Object.keys(ACTION)[parseInt(action)]}`, manualPlay);
 
         return {prediction, action};
     }

@@ -11,7 +11,6 @@ async function main() {
   new ModelRequest('http://localhost', '8050')
 
   while (true) {
-    await ModelRequest.resetGame();
     const playthrough = new Playthrough({ deck }, true);
     const res = await playthrough.play();
     res.forEach(res => stats.addResult(res));
