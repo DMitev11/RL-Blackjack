@@ -58,6 +58,9 @@ class PlayHand extends Hand{
             this._action === ACTION.DOUBLE_DOWN;
     }
     set done(value) { this._done = value; }
+    
+    get action() { return this._action }
+    set action(value) { this._action = value}
 
     get manualPlay() { 
         return this._manualPlay;

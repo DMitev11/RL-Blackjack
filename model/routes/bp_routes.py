@@ -1,5 +1,5 @@
 from flask import jsonify, request
-from loaded_models.utils import parseCards
+from routes.utils import parseCards
 
 def register_routes(bp, env, model):
     @bp.route('/hand_value', methods=['GET'])
@@ -10,10 +10,10 @@ def register_routes(bp, env, model):
         return jsonify({"soft": float(soft), "hard": float(hard), "pairs": [float(pair) for pair in pairs], "highValue": float(highValue)})
 
     @bp.route('/hand_cards', methods=['GET'])
-    def hand_Cards():
+    def hand_cards():
         idx = request.args.get('hand_index', 0)
         idx = int(idx)
-        return jsonify(env.playerHand(idx))
+        return jsonify({"cards": [float(card) for card in env.playerHand(idx)]})
 
     @bp.route('/add_player_hand', methods=['POST'])
     def add_player_hand():
@@ -90,6 +90,7 @@ def register_routes(bp, env, model):
 
         action, _ = model.predict(env.state)
         return jsonify({
+            'prediction': int(action),
             'action' : env.evaluateAction(action, idx).value,
             "result": True
         }), 200

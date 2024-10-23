@@ -1,8 +1,7 @@
 import numpy as np
 from gymnasium import Env
-from gymnasium.spaces import Discrete, Box, Dict
 
-from utils import Card, Action, calculateHand, shiftEndNegative1D, shiftEndNegative2D
+from utils import Card, Action, calculateHand, shiftEndNegative1D, shiftEndNegative2D, MIN_HAND_LENGTH, MAX_PLAYER_HAND_CARDS
 
 class BlackJackPlayEnv(Env):
     def evaluateAction(self, action, index):
@@ -11,17 +10,18 @@ class BlackJackPlayEnv(Env):
         soft, _, pairs, _ = calculateHand(hand)
         len_hand = len([v for v in hand if v != -1])
         while True:
-            if(action - iter <= Action.STAY.value):
+            if(action - iter <= Action.STAND.value):
                 self.state['done_hands'][index] = 1
-                return Action.STAY
+                return Action.STAND
 
             if(action - iter == Action.HIT.value):
                 return Action.HIT
 
-            if(action - iter == Action.DOUBLE_DOWN.value and (len_hand == 2 or soft < 11)):
+            if(action - iter == Action.DOUBLE_DOWN.value and (len_hand == MIN_HAND_LENGTH and soft < 11)):
+                self.state['done_hands'][index] = 1
                 return Action.DOUBLE_DOWN
 
-            if(action - iter == Action.SPLIT.value and len(pairs) > 0 and len_hand == 2):
+            if(action - iter == Action.SPLIT.value and len(pairs) > 0 and len_hand == MIN_HAND_LENGTH):
                 return Action.SPLIT
 
             if((len_hand <= Card.TWO.value or soft < Card.ACE.value) and len(pairs) > 0):
@@ -76,7 +76,7 @@ class BlackJackPlayEnv(Env):
     def removePlayerHand(self, index):
         if(self.__isValidHand__(index) == False): return False
 
-        self.state['player_hands'][index] = 21 * [-1]
+        self.state['player_hands'][index] = MAX_PLAYER_HAND_CARDS * [-1]
         self.state['done_hands'][index] = -1
         self.state['player_total'][index] = -1
         self.state['player_hands_indices'] -= 1

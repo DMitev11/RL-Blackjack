@@ -235,6 +235,12 @@ export class StatsTracker {
         if(value === 1) { this.wins++; }
     }
     addRound() { this.round++; }
+
+    log() { 
+        console.log(`Wins: ${this.wins}`)
+        console.log(`Losses: ${this.losses}`)
+        console.log(`Draws: ${this.draw}`)
+    }
 }
 
 export class Logger { 
