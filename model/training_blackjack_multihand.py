@@ -3,7 +3,7 @@ import numpy as np
 import os
 
 from gymnasium import Env
-from stable_baselines3 import DQN, PPO
+from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import SubprocVecEnv
 from stable_baselines3.common.env_checker import check_env
 from stable_baselines3.common.env_util import make_vec_env
@@ -174,8 +174,8 @@ def main():
     log_path = os.path.join('Training', 'Logs')
     model_path = os.path.join('./CARDS_DQN_MULTIHAND')
 
-    model = DQN("MultiInputPolicy", env, verbose=1, tensorboard_log=log_path)
-    # model = PPO.load(model_path, env, verbose=1, tensorboard_log=log_path, ent_coef=0.1)
+    # model = PPO("MultiInputPolicy", env, verbose=1, tensorboard_log=log_path)
+    model = PPO.load(model_path, env, verbose=1, tensorboard_log=log_path, ent_coef=0.1)
     model.learn(total_timesteps=3000000, log_interval=1)
     model.save(model_path)
 
