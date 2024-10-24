@@ -82,6 +82,10 @@ export class ModelRequest {
   static step(action: number, prefix = ""): Promise<any> {
     return ModelRequest.instance.post(`${prefix}\\step`, { action });
   }
+
+  static setReward(action: number, prefix = ""): Promise<any> {
+    return ModelRequest.instance.post(`${prefix}\\set_reward`, { action });
+  }
 }
 
 

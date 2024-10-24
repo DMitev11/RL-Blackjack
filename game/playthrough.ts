@@ -4,7 +4,9 @@ import { Deck, ACTION, Logger, dealersUpcard, softHardHands, splittingPairs, TAR
 
 export enum ModelTypes {
     Average,
+    StandOnly,
     MultiHand,
+    Random,
 }
 export class Playthrough { 
     private _hands: PlayHand[];
@@ -16,39 +18,44 @@ export class Playthrough {
     }
 
     private async handActionEvaluate(index: number, action: ACTION) {
+        const handValue: Deck.Hand = this._hands[index].handValue;
         switch(action) { 
+            case ACTION.STAND: { 
+                this._hands[index].done = true
+                break;
+            }
             case ACTION.HIT: {
                 const card = this._params.deck.drawCard() as [Deck.CARD, number];
                 this._hands[index].addCard(card);
                 // await ModelRequest.add_player_cards([card[0].toString()], index, "old");
 
-                if(this.manualPlay || this._model !== ModelTypes.Average) await ModelRequest.add_player_cards([card[0].toString()], index, "multihand");
+                if(this.manualPlay || this._model == ModelTypes.MultiHand) await ModelRequest.add_player_cards([card[0].toString()], index, "multihand");
                 break;
             }
             case ACTION.DOUBLE_DOWN: {
+                if(handValue.cards.length > 2) break;
+
                 const cards = [this._params.deck.drawCard() as [Deck.CARD, number], this._params.deck.drawCard() as [Deck.CARD, number]];
                 this._hands[index].addCard(...cards);
                 // ModelRequest.add_player_cards(cards.map(([card, _]) => card.toString()), index, "old");
-                if(this.manualPlay || this._model !== ModelTypes.Average) ModelRequest.add_player_cards(cards.map(([card, _]) => card.toString()), index, "multihand");
+                if(this.manualPlay || this._model === ModelTypes.MultiHand) ModelRequest.add_player_cards(cards.map(([card, _]) => card.toString()), index, "multihand");
                 this._hands[index].done = true
                 break;
             }
             case ACTION.SPLIT: { 
+                if(handValue.pairs.length <= 0) break;
+
                 const card = this._hands[index].handValue.pairs[0];
                 this._hands[index].removeCard(card);
                 // ModelRequest.remove_player_card(card[0].toString(), index, "old");
-                if(this.manualPlay || this._model !== ModelTypes.Average) ModelRequest.remove_player_card(card[0].toString(), index, "multihand");
+                if(this.manualPlay || this._model === ModelTypes.MultiHand) ModelRequest.remove_player_card(card[0].toString(), index, "multihand");
                 
                 const newHandCards = [card, this._params.deck.drawCard()];
                 this._hands.push(new PlayHand(newHandCards, this._hands[index].manualPlay));
                 // ModelRequest.add_player_hand(newHandCards.map(([card, _]) => card.toString()), "old");
-                if(this.manualPlay || this._model !== ModelTypes.Average) ModelRequest.add_player_hand(newHandCards.map(([card, _]) => card.toString()), "multihand");
+                if(this.manualPlay || this._model === ModelTypes.MultiHand) ModelRequest.add_player_hand(newHandCards.map(([card, _]) => card.toString()), "multihand");
 
                 this._hands[index].addCard(this._params.deck.drawCard());
-                break;
-            }
-            case ACTION.STAND: { 
-                this._hands[index].done = true
                 break;
             }
         }    
@@ -137,14 +144,17 @@ export class Playthrough {
         const playerCards = this._hands[0].handValue.cardNames.map(card => card.toString())
         const dealerCards = this._dealer.handValue.cardNames[0].toString()
         // await ModelRequest.startGame(playerCards, dealerCards, "old");
-        if(this.manualPlay || this._model !== ModelTypes.Average) {
+        if(this.manualPlay || this._model === ModelTypes.MultiHand) {
             await ModelRequest.resetGame("multihand");
             await ModelRequest.startGame(playerCards, dealerCards, "multihand");
         }
         
+        let action: ACTION = ACTION.STAND;
         while(!dealerTurn) { 
             dealerTurn = true;
-            for(let i = this._hands.length -1; i >=0; i--) { 
+            const handsLeft = this._hands.length -1
+            if(handsLeft > 0) await ModelRequest.step(Object.values(ACTION).indexOf(action), "multihand")
+            for(let i = handsLeft; i >= 0; i--) { 
                 const hand = this._hands[i];
                 if(hand.done) continue;
                 dealerTurn = false;
@@ -158,25 +168,27 @@ export class Playthrough {
                     this.softHardHands(i, hand.manualPlay);
                     this.splittingPairs(i, hand.manualPlay);
                     await this.modelPrediction(i, hand.manualPlay, "multihand");
-                }
-                // const oldModelPrediction = await this.modelPrediction(i, hand.manualPlay, "old");'
-                
-                let action: ACTION = ACTION.STAND;
-                if(hand.manualPlay) { 
+                    // const oldModelPrediction = await this.modelPrediction(i, hand.manualPlay, "old");'
+
                     action = await hand.play();
-                    await ModelRequest.step(Object.values(ACTION).indexOf(action), "multihand")
                 }
                 else { 
                     if(this._model === ModelTypes.MultiHand) {
                         const multihandModelPrediction = await this.modelPrediction(i, hand.manualPlay, "multihand");
                         action = Object.values(ACTION)[multihandModelPrediction.action];
-                        await ModelRequest.step(Object.values(ACTION).indexOf(action), "multihand")
                     }  
                     if(this._model === ModelTypes.Average) {
                         const dealersUpcard = this.dealersUpcard(i, hand.manualPlay);
                         const softHardHands = this.softHardHands(i, hand.manualPlay);
                         const splittingPairs = this.splittingPairs(i, hand.manualPlay);
                         action = this.autoPlay([dealersUpcard, softHardHands.soft, softHardHands.hard, splittingPairs.action]);
+                    }
+                    if(this._model === ModelTypes.StandOnly) {
+                        action = ACTION.STAND;
+                    }
+                    if(this._model === ModelTypes.Random) {
+                        const actions = Object.values(ACTION);
+                        action = actions[Math.round(Math.random() * (actions.length - 1))];
                     }
                 }
                 
@@ -223,6 +235,10 @@ export class Playthrough {
             score.push(handScore);
         }
 
+        if(this.manualPlay || this._model === ModelTypes.MultiHand) {
+            await ModelRequest.setReward(score.reduce((acc, val) => acc + val, 0), "multihand")
+            await ModelRequest.step(Object.values(ACTION).indexOf(action), "multihand")
+        }
         return score;
     }
 }

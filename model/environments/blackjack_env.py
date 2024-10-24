@@ -119,3 +119,9 @@ class BlackJackPlayEnv(Env):
     def setHandIndex(self, index):
         pass
 
+    def __init__(self):
+        self.reward = 0
+
+    def setReward(self, reward):
+        self.reward = reward
+

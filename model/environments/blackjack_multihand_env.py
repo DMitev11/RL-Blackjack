@@ -12,6 +12,7 @@ class BlackJackPlayNewEnv(BlackJackPlayEnv):
         return True
     
     def __init__(self):
+        super().__init__()
         self.action_space = ACTION_SPACE
         self.observation_space = MULTI_HAND_OBS
         self.reset()
@@ -27,7 +28,7 @@ class BlackJackPlayNewEnv(BlackJackPlayEnv):
             'dealer_hand': np.array(DEALER_HAND_CARDS * [-1], dtype = np.float32),
             'dealer_total': int(0)
         }
-
+        self.reward = 0
         self.done = False
         info = {}
         return self.state, info
@@ -37,8 +38,9 @@ class BlackJackPlayNewEnv(BlackJackPlayEnv):
         info = {}
         truncated = False
 
-        done = len([i for i in self.state['done_hands'] if i == -1 or i == -1]) < 0
-        return self.state, 0, done, truncated, info
+        all_hands_done = len([i for i in self.state['done_hands'] if i == -1 or i == -1]) < 0
+        done = self.reward if all_hands_done and self.reward != 0 else 0
+        return self.state, self.reward, done, truncated, info
 
     def render(self):
         # Implement viz

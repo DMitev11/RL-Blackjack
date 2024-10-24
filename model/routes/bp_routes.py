@@ -94,3 +94,11 @@ def register_routes(bp, env, model):
             'action' : env.evaluateAction(action, idx).value,
             "result": True
         }), 200
+
+    @bp.route('/set_reward', methods=['POST'])
+    def set_reward():
+        reward = request.args.get('reward', 0)
+        reward = int(reward)
+ 
+        env.setReward(reward)
+        return jsonify({"result": True}), 200

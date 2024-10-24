@@ -15,7 +15,7 @@ abstract class Hand {
         return this._cards;
     }
 
-    get handValue() { 
+    get handValue(): Deck.Hand { 
         return getHandValue(...this._cards);
     }
 
@@ -69,7 +69,7 @@ class PlayHand extends Hand{
     async play(): Promise<ACTION> { 
         this._wait = new AsyncAction();
         
-        Logger.log(`Actions are: ${Object.keys(ACTION).map((action, i) => ` key ${i} for action ${action}`)}`)
+        Logger.log(`\nActions are: ${Object.keys(ACTION).map((action, i) => ` key ${i} for action ${action}`)}`)
         rl.question(`What is your action? `, this.input.bind(this));
         await this._wait.wait();
 

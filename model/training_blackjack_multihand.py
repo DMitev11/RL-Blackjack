@@ -25,33 +25,34 @@ class BlackJackPlayEnv(Env):
         self.state['done_hands'] =  shiftEndNegative1D(self.state['done_hands'], np.int32)
         self.state['player_total'] = shiftEndNegative1D(self.state['player_total'], np.int32)
         
-    def __evaluateAction__(self, action):
-        iter = 0
+    def __evaluateAction__(self, action) -> dict[str, Action | bool]:
         hand = self.state['player_hands'][self.state['player_index']]
         soft, _, pairs, _ = calculateHand(hand)
         len_hand = len([v for v in hand if v != -1])
         while True:
-            if(action - iter <= Action.STAND.value):
+            if(action == Action.STAND.value):
                 self.state['done_hands'][self.state['player_index']] = 1
-                return Action.STAND
+                return {"action": Action.STAND, "success": True}
 
-            if(action - iter == Action.HIT.value):
+            if(action == Action.HIT.value):
                 idx = np.where(hand == -1)[0][0]
                 hand[idx] = self.deck.drawCard()
 
                 self.__sortHand__(self.state['player_index'])
-                return Action.HIT
+                return {"action": Action.HIT, "success": True}
 
-            if(action - iter == Action.DOUBLE_DOWN.value and (len_hand == MIN_HAND_LENGTH and soft < 11)):
+            if(action == Action.DOUBLE_DOWN.value):
+                if len_hand != MIN_HAND_LENGTH or soft > 11: return {"action": Action.DOUBLE_DOWN, "success": False}
                 indices = np.where(hand == -1)[0]
                 hand[indices[0]] = self.deck.drawCard()
                 hand[indices[1]] = self.deck.drawCard()
                 self.state['done_hands'][self.state['player_index']] = 1
 
                 self.__sortHand__(self.state['player_index'])
-                return Action.DOUBLE_DOWN
+                return {"action": Action.DOUBLE_DOWN, "success": True}
 
-            if(action - iter == Action.SPLIT.value and len(pairs) > 0):
+            if(action == Action.SPLIT.value):
+                if(len(pairs) <= 0): return {"action": Action.SPLIT, "success": False}
                 card = pairs[0]
                 indices = np.where(np.floor(hand) == card)
                 idx = np.max(indices)
@@ -67,17 +68,7 @@ class BlackJackPlayEnv(Env):
                 self.state['done_hands'][h_idx] = 0
 
                 self.__sortHands__()
-                return Action.SPLIT
-
-            if((len_hand <= MIN_HAND_LENGTH or soft < Card.ACE.value) and len(pairs) > 0):
-                iter += 4
-                continue
-            #action masking
-            if((len_hand <= MIN_HAND_LENGTH or soft < Card.ACE.value) and len(pairs) > 0):
-                iter += 3
-                continue
-            #action masking
-            iter +=2
+                return {"action": Action.SPLIT, "success": True}
     
     def __set_game__(self):
         player_hands = np.array([[self.deck.drawCard(), self.deck.drawCard()] + (MAX_PLAYER_HAND_CARDS - 2) * [-1]] + (MAX_HANDS - 1) * [MAX_PLAYER_HAND_CARDS * [-1]], dtype = np.float32)
@@ -112,7 +103,9 @@ class BlackJackPlayEnv(Env):
         done = False
         reward = 0
 
-        _ = self.__evaluateAction__(action)
+        res = self.__evaluateAction__(action)
+        if(res["success"] == False): return self.state, -.1, done, truncated, info
+
         soft, hard, _, highValue = calculateHand(self.state['player_hands'][self.state['player_index']])
         self.state['player_total'][self.state['player_index']] = highValue
 
@@ -170,14 +163,15 @@ def main():
     # env = BlackJackPlayEnv()
     # check_env(env, warn=True)
 
-    env = make_vec_env(BlackJackPlayEnv, n_envs=16, vec_env_cls=SubprocVecEnv)
+    env = BlackJackPlayEnv()
     log_path = os.path.join('Training', 'Logs')
-    model_path = os.path.join('./CARDS_DQN_MULTIHAND')
+    model_path = os.path.join('./CARDS_PPO_MULTIHAND_500K_NO_MASK')
+    save_model_path = os.path.join('./CARDS_PPO_MULTIHAND_1M_NO_MASK')
 
-    # model = PPO("MultiInputPolicy", env, verbose=1, tensorboard_log=log_path)
-    model = PPO.load(model_path, env, verbose=1, tensorboard_log=log_path, ent_coef=0.1)
-    model.learn(total_timesteps=3000000, log_interval=1)
-    model.save(model_path)
+    # model = PPO("MultiInputPolicy", env, verbose=1, tensorboard_log=log_path, ent_coef=0.001, vf_coef = 0.01)
+    model = PPO.load(model_path, env, verbose=1, tensorboard_log=log_path, ent_coef=0.001, vf_coef = 0.01)
+    model.learn(total_timesteps=500000, log_interval=1)
+    model.save(save_model_path)
 
 if __name__ == '__main__':
     # This is necessary for Windows to avoid the "freeze_support" error
