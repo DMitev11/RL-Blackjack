@@ -4,9 +4,6 @@ import os
 
 from gymnasium import Env
 from stable_baselines3 import PPO
-from stable_baselines3.common.vec_env import SubprocVecEnv
-from stable_baselines3.common.env_checker import check_env
-from stable_baselines3.common.env_util import make_vec_env
 
 from utils import ACTION_SPACE, BLACKJACK_VALUE, DEALER_STOP_VALUE, MIN_HAND_LENGTH, MULTI_HAND_OBS, Action, Card, Deck, calculateHand, shiftEndNegative1D, shiftEndNegative2D, MAX_PLAYER_HAND_CARDS, DEALER_HAND_CARDS, MAX_HANDS
 
@@ -160,16 +157,22 @@ class BlackJackPlayEnv(Env):
         pass
 
 def main():
-    # env = BlackJackPlayEnv()
-    # check_env(env, warn=True)
-
+    # Option: 1 - singular agent
     env = BlackJackPlayEnv()
-    log_path = os.path.join('Training', 'Logs')
-    model_path = os.path.join('./CARDS_PPO_MULTIHAND_EX_NO_MASK_Alternate')
-    save_model_path = os.path.join('./CARDS_PPO_MULTIHAND_EX_NO_MASK_Alternate')
 
-    model = PPO("MultiInputPolicy", env, verbose=1, tensorboard_log=log_path, ent_coef=0.025, vf_coef = 0.5, clip_range = 0.3)
-    # model = PPO.load(model_path, env, verbose=1, tensorboard_log=log_path, ent_coef=0.025, vf_coef = 0.5, clip_range = 0.3)
+    # Option: 2 - parallel agents training - 16 environments
+    # from stable_baselines3.common.vec_env import SubprocVecEnv
+    # from stable_baselines3.common.env_util import make_vec_env
+    # env = make_vec_env(BlackJackPlayEnv, n_envs=16, vec_env_cls=SubprocVecEnv)
+
+    log_path = os.path.join('Training', 'Logs')
+    model_path = os.path.join('./CARDS_PPO_MULTIHAND')
+    save_model_path = os.path.join('./CARDS_PPO_MULTIHAND')
+
+    model = PPO("MultiInputPolicy", env, verbose=1, tensorboard_log=log_path, ent_coef=0.025, vf_coef = 0.25, clip_range = 0.3)
+
+    #Uncomment to load a model from file and continue its training
+    # model = PPO.load(model_path, env, verbose=1, tensorboard_log=log_path, ent_coef=0.025, clip_range = 0.3)
     model.learn(total_timesteps=1000000, log_interval=1)
     model.save(save_model_path)
 

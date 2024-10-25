@@ -3,11 +3,7 @@ import numpy as np
 import os
 
 from gymnasium import Env
-
 from stable_baselines3 import PPO
-from stable_baselines3.common.vec_env import SubprocVecEnv
-from stable_baselines3.common.env_checker import check_env
-from stable_baselines3.common.env_util import make_vec_env
 
 from utils import ACTION_SPACE, BLACKJACK_VALUE, DEALER_STOP_VALUE, MIN_HAND_LENGTH, SINGLE_HAND_OBS, Action, Card, Deck, calculateHand, MAX_PLAYER_HAND_CARDS, DEALER_HAND_CARDS
 
@@ -119,28 +115,20 @@ class BlackJackPlayEnv(Env):
         pass
 
 def main():
+    # Option: 1 - singular agent
     env = BlackJackPlayEnv()
-    check_env(env, warn=True)
 
-    # episodes = 500
-    # for episode in range(1, episodes+1):
-    #     state = env.reset(0)
-    #     done = False
-    #     score = 0 
+    # Option: 2 - parallel agents training - 16 environments
+    # from stable_baselines3.common.vec_env import SubprocVecEnv
+    # from stable_baselines3.common.env_util import make_vec_env
+    # env = make_vec_env(BlackJackPlayEnv, n_envs=16, vec_env_cls=SubprocVecEnv)
 
-    #     while not done:
-    #         env.render()
-    #         action = env.action_space.sample()
-    #         n_state, reward, done, truncated, info = env.step(action)
-    #         score+=reward
-    #     print('Episode:{} Score:{}'.format(episode, score))
-    # env.close()
-
-    env = make_vec_env(BlackJackPlayEnv, n_envs=16, vec_env_cls=SubprocVecEnv)
     log_path = os.path.join('Training', 'Logs')
     model_path = os.path.join('./CARDS_PPO_SINGLEHAND')
 
     model = PPO("MultiInputPolicy", env, verbose=1, tensorboard_log=log_path, ent_coef=0.1)
+
+    #Uncomment to load a model from file and continue its training
     # model = PPO.load(model_path, env, verbose=1, tensorboard_log=log_path, ent_coef=0.1)
     model.learn(total_timesteps=3000000, log_interval=1)
     model.save(model_path)
