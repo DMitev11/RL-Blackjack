@@ -3,7 +3,7 @@ from environments.blackjack_multihand_env import BlackJackPlayNewEnv
 
 env_multi_handed_blackjack=BlackJackPlayNewEnv()
 env_multi_handed_blackjack.reset()
-model_multi_handed_blackjack = PPO.load("CARDS_PPO_MULTIHAND_1M_NO_MASK", env_multi_handed_blackjack)
+model_multi_handed_blackjack = PPO.load("CARDS_PPO_MULTIHAND", env_multi_handed_blackjack)
 
 from flask import Blueprint
 bp_multi_handed_blackjack = Blueprint('multihand_model_routes', __name__)

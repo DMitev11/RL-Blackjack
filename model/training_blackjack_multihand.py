@@ -165,12 +165,12 @@ def main():
 
     env = BlackJackPlayEnv()
     log_path = os.path.join('Training', 'Logs')
-    model_path = os.path.join('./CARDS_PPO_MULTIHAND_500K_NO_MASK')
-    save_model_path = os.path.join('./CARDS_PPO_MULTIHAND_1M_NO_MASK')
+    model_path = os.path.join('./CARDS_PPO_MULTIHAND_EX_NO_MASK_Alternate')
+    save_model_path = os.path.join('./CARDS_PPO_MULTIHAND_EX_NO_MASK_Alternate')
 
-    # model = PPO("MultiInputPolicy", env, verbose=1, tensorboard_log=log_path, ent_coef=0.001, vf_coef = 0.01)
-    model = PPO.load(model_path, env, verbose=1, tensorboard_log=log_path, ent_coef=0.001, vf_coef = 0.01)
-    model.learn(total_timesteps=500000, log_interval=1)
+    model = PPO("MultiInputPolicy", env, verbose=1, tensorboard_log=log_path, ent_coef=0.025, vf_coef = 0.5, clip_range = 0.3)
+    # model = PPO.load(model_path, env, verbose=1, tensorboard_log=log_path, ent_coef=0.025, vf_coef = 0.5, clip_range = 0.3)
+    model.learn(total_timesteps=1000000, log_interval=1)
     model.save(save_model_path)
 
 if __name__ == '__main__':

@@ -8,15 +8,36 @@ import { cloneDeep } from "lodash";
 
 async function main() {
   const deck = new Deck.PlayDeck(4);
+  new ModelRequest('http://localhost', '8050')
+  
+  const args = process.argv.slice(2);
+  if(args.includes('--simulate') || args.includes('--simulation')) await simulate(deck);
+  else await manualPlay(deck)
+}
+
+async function manualPlay(deck: Deck.PlayDeck) { 
+  const stats = new StatsTracker();
+  while(true) { 
+    console.clear();
+    stats.log();
+    
+    const playthrough = new Playthrough({ deck }, true, ModelTypes.MultiHand);
+    const res = await playthrough.play();
+    res.forEach(res => stats.addResult(res));
+  }
+}
+
+async function simulate(deck: Deck.PlayDeck) { 
   const multihandDeck = cloneDeep(deck);
   const averageDeck = cloneDeep(deck);
   const standDeck = cloneDeep(deck);
   const randomDeck = cloneDeep(deck);
+
   const multihandStats = new StatsTracker();
   const averageStats = new StatsTracker();
   const standStats = new StatsTracker();
   const randomStats = new StatsTracker();
-  new ModelRequest('http://localhost', '8050')
+
 
   const rounds = 1000
   for(let i = 0.; i < rounds; i++) {
@@ -58,5 +79,4 @@ async function main() {
   randomStats.log()
   return;
 }
-
 main();

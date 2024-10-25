@@ -4,7 +4,9 @@
   "description": "",
   "main": "main.ts",
   "scripts": {
-    "start": "npx ts-node ./main.ts"
+    "start": "npx ts-node ./main.ts",
+    "simulate": "npx ts-node ./main.ts --simulate",
+    "simulation": "npm run simulate"
   },
   "author": "",
   "license": "ISC",
