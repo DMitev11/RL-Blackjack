@@ -166,14 +166,13 @@ def main():
     # env = make_vec_env(BlackJackPlayEnv, n_envs=16, vec_env_cls=SubprocVecEnv)
 
     log_path = os.path.join('Training', 'Logs')
-    model_path = os.path.join('./CARDS_PPO_MULTIHAND')
     save_model_path = os.path.join('./CARDS_PPO_MULTIHAND')
-
-    model = PPO("MultiInputPolicy", env, verbose=1, tensorboard_log=log_path, ent_coef=0.025, vf_coef = 0.25, clip_range = 0.3)
+    model = PPO("MultiInputPolicy", env, verbose=1, tensorboard_log=log_path, ent_coef=0.01, vf_coef = 0.05, clip_range = 0.25)
 
     #Uncomment to load a model from file and continue its training
+    # model_path = os.path.join('./CARDS_PPO_MULTIHAND')
     # model = PPO.load(model_path, env, verbose=1, tensorboard_log=log_path, ent_coef=0.025, clip_range = 0.3)
-    model.learn(total_timesteps=1000000, log_interval=1)
+    model.learn(total_timesteps=300000, log_interval=1)
     model.save(save_model_path)
 
 if __name__ == '__main__':

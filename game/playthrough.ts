@@ -145,7 +145,9 @@ export class Playthrough {
         while(!dealerTurn) { 
             dealerTurn = true;
             const handsLeft = this._hands.length -1
-            if(handsLeft > 0) await ModelRequest.step(Object.values(ACTION).indexOf(action), "multihand")
+            if(handsLeft > 0 && (this.manualPlay || this._model === ModelTypes.MultiHand)) {
+                await ModelRequest.step(Object.values(ACTION).indexOf(action), "multihand")
+            } 
             for(let i = handsLeft; i >= 0; i--) { 
                 const hand = this._hands[i];
                 if(hand.done) continue;
