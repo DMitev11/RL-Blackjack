@@ -5,7 +5,7 @@ All libraries utilized in this project must be royalty free.
 
 ### **Build and run**
 - **Model**
-    Requires a pre-installed Python 3(tested with 3.11 and above)
+    Requires a pre-installed Python 3 (tested with 3.11 and above)
     1.  a: `pip install` libraries from 'model/requirements.txt'
         b: (Recommended) Create a virtual environment. Read more [here](https://docs.python.org/3/library/venv.html)
     2.  Open a terminal and navigate (<u>cd</u>) to `/model`
